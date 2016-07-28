@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1469674596 source:/home/milton/[MIA]201314014/-MIA-201314014/MIA_201314014/main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+

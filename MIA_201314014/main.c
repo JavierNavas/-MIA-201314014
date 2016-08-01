@@ -16,17 +16,19 @@ char comando[256];
 char analizo[2][256];
 int contador=0;
 int KB = 1024;
+int estadom=0;
 
 int main()
 {
     printf("Bienvenido a FILE SYSTEM EXT2/EXT3\n");
+    while(estadom!=1){
     printf("Ingrese un comando :\n");
-    scanf("%s", comando);
+    scanf("%[^\n]", comando);
     tamano = strlen(comando);
 
 
     char** tokens;
-    tokens =cad_split(comando, ',');
+    tokens =cad_split(comando, ' ');
 
     if (tokens)
     {
@@ -39,12 +41,30 @@ int main()
     }
 
     //CrearDisco(comando,5);
-    if( strcmp(analizo[0],"exec") == 0 ) //aqui comparo si ambos nombres son iguales
-        printf("son iguales");
-    else
-        printf("Comando no reconocido");
+    if( strcmp(analizo[0],"exec") == 0 ) {//aqui comparo si ambos comandos son iguales
+        printf("son iguales:%s\n",analizo[1]);
+        FILE* script;
+        char linea[80];
+        int endoffile=0;
+        script=fopen(analizo[1],"r");
+        if(script==NULL){
+        printf("Ruta erronea, verifique ruta\n");
+        }else{
+            endoffile=fscanf(script," %[^\n]",&linea);
 
+             while(endoffile!=EOF){
+              //Si endofile es EOF entonces estamos en el final del archivo
+            printf("%s\n",linea);
+            endoffile=fscanf(script," %[^\n]",&linea);
+            }
+            fclose(script);
+          }
+     }else{
+        printf("Comando no reconocido\n");
+     }
 
+    pausar();
+    }
     return 0;
 }
 
@@ -115,4 +135,12 @@ char** cad_split(char* a_str, const char a_delim)
     }
 
     return result;
+}
+
+void pausar(){
+printf("PRESIONE ENTER PARA CONTINUAR");
+
+while(getchar()!='\n');
+getchar();
+
 }

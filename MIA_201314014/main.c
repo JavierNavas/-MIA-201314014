@@ -2,29 +2,62 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
-char** cad_split(char* a_str, const char a_delim);
-void CrearDisco(char direccion[256], int tamano);
 
+//STRUCTS QUE USA EL DISCO
 typedef struct {
   char dato[64];
 }BloqueInfo;
 
+
+typedef struct
+{
+    char estado[1];
+    char tipo[1];
+    char ajuste[2];
+    int byteIni;
+    int tamano;
+    char nombre[16];
+}Particion;
+
+
+typedef struct MBR
+{
+    int tamano;
+    char fecha_creacion[128];
+    int disk_signature;
+    Particion partition_1;
+    Particion partition_2;
+    Particion partition_3;
+    Particion partition_4;
+}MBR;
+
+
+//FUNCIONES
+char** cad_split(char* a_str, const char a_delim);
+void CrearDisco(char direccion[256]);
+void agregarmbr(MBR* datosMbr);
+
+//VARIABLES LOCALES
 int opcion=0;
-int tamano=0;
+int tamdisco=0;
 char comando[256];
 char analizo[2][256];
 int contador=0;
 int KB = 1024;
 int estadom=0;
+FILE * midisco;
+char nombredisco[256]="/home/milton/Disco2.dsk";
 
 int main()
 {
+    tamdisco = 60* KB;
+    CrearDisco(nombredisco);
     printf("Bienvenido a FILE SYSTEM EXT2/EXT3\n");
     while(estadom!=1){
     printf("Ingrese un comando :\n");
     scanf("%[^\n]", comando);
-    tamano = strlen(comando);
 
 
     char** tokens;
@@ -39,8 +72,6 @@ int main()
         }
         free(tokens);
     }
-
-    //CrearDisco(comando,5);
     if( strcmp(analizo[0],"exec") == 0 ) {//aqui comparo si ambos comandos son iguales
         printf("son iguales:%s\n",analizo[1]);
         FILE* script;
@@ -70,28 +101,40 @@ int main()
 
 
 
-void CrearDisco(char direccion[256], int tamano) {
-    int particion = tamano * KB*KB;
+void CrearDisco(char direccion[256]) {
 
-    printf("******************************************************************\n");
-    printf("******************************************************************\n");
-    char nombre[256];
-    strcpy(nombre, direccion);
-    printf("esta es la direccion:%s",nombre);
-    FILE *archivo;
-        strcat(nombre,".bin");
-        printf("cuidado:%s",nombre);
-        archivo = fopen(nombre, "ab");
-        BloqueInfo bloque;
-        int faltante = particion/sizeof(BloqueInfo); /// lo divido para obtener el numero de bloques que caben en 5 megas
-        int i;
-        strcpy(bloque.dato,"\0");
-        for (i = 1; i <= faltante; i++) {
-            fwrite(&bloque, sizeof (BloqueInfo), 1, archivo);
-            fflush(archivo);
-        }
-        fclose(archivo);
 
+    midisco = fopen(direccion,"wb");
+    fseek(midisco,0,SEEK_SET);
+    for(int i = 0; i<tamdisco; i++){
+        fwrite("/0",1,1,midisco);
+    }
+    fclose(midisco);
+
+
+    MBR* datosMbr = (MBR *) malloc(sizeof(MBR));
+    Particion particionTemp;
+    strcmp(particionTemp.ajuste,"wf");
+    particionTemp.byteIni = 0;
+    strcmp(particionTemp.estado,"i");
+    strcpy(particionTemp.nombre, "-");
+    particionTemp.tamano = 0;
+    strcmp(particionTemp.tipo, "p");
+    time_t tiempo = time(0);
+    struct tm *elTiempo = localtime(&tiempo);
+    strftime(datosMbr->fecha_creacion, 128, "%d/%m/%y %H:%M:%S", elTiempo);
+    datosMbr->disk_signature = rand() % 9999;
+    datosMbr->partition_1=particionTemp;
+    datosMbr->partition_2=particionTemp;
+    datosMbr->partition_3=particionTemp;
+    datosMbr->partition_4=particionTemp;
+    datosMbr->tamano = tamdisco;
+
+    printf("fecha: %s\n",datosMbr->fecha_creacion);
+    printf("diskSignatura: %d\n",datosMbr->disk_signature);
+    printf("tamano(Mbr): %d\n",sizeof(MBR));
+    printf("tamano(Particion): %d\n",sizeof(Particion));
+    agregarmbr(datosMbr);
 }
 
 
@@ -142,5 +185,16 @@ printf("PRESIONE ENTER PARA CONTINUAR");
 
 while(getchar()!='\n');
 getchar();
+
+}
+
+
+void agregarmbr(MBR* datosMbr){
+
+    FILE *archivo;
+    archivo = fopen("/home/milton/Disco2.dsk", "r+b");
+    fseek(archivo, 0, SEEK_SET);
+    fwrite(datosMbr, sizeof(MBR), 1, archivo);
+    fclose(archivo);
 
 }

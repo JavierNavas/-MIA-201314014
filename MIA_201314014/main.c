@@ -10,6 +10,14 @@ typedef struct {
   char dato[64];
 }BloqueInfo;
 
+typedef struct DiscoDuro
+{
+ int size;
+ char path[50];
+ char name[50];
+ char unit[50];
+}DiscoDuro;
+
 
 typedef struct
 {
@@ -38,6 +46,8 @@ typedef struct MBR
 char** cad_split(char* a_str, const char a_delim);
 void CrearDisco(char direccion[256]);
 void agregarmbr(MBR* datosMbr);
+DiscoDuro* parserMkdisk(char datos[150]);
+void rmdisk(char archivo[150]);
 
 //VARIABLES LOCALES
 int opcion=0;
@@ -48,12 +58,17 @@ int contador=0;
 int KB = 1024;
 int estadom=0;
 FILE * midisco;
-char nombredisco[256]="/home/milton/Disco2.dsk";
+char nombredisco[256]="/home/milton/Disco3.dsk";
 
 int main()
 {
     tamdisco = 60* KB;
     CrearDisco(nombredisco);
+    DiscoDuro *nuevoDisco =parserMkdisk("mkdisk -size::35 -unit::mi -path::hola ");
+    printf("unit:%s\n",nuevoDisco->unit);
+    printf("path:%s\n",nuevoDisco->path);
+    printf("size:%d\n",nuevoDisco->size);
+    rmdisk("/home/milton/Disco2.dsk");
     printf("Bienvenido a FILE SYSTEM EXT2/EXT3\n");
     while(estadom!=1){
     printf("Ingrese un comando :\n");
@@ -198,3 +213,68 @@ void agregarmbr(MBR* datosMbr){
     fclose(archivo);
 
 }
+
+
+DiscoDuro* parserMkdisk(char datos[150]){
+    DiscoDuro *temp = (DiscoDuro*) malloc(sizeof(DiscoDuro));
+    strcpy(temp->unit ,"m");
+    char*linea = datos;
+    while(*linea != '\n' && *linea != '\0' && linea != NULL)
+    {
+        while(*linea != '-'){
+            linea++;
+        }
+        char pedazo[50];
+        //limpio pedazo a analizar
+        for(int i = 0; i<=50; i++){
+        pedazo[i] = '\0';
+        }
+        int cont = 0;
+        while(*linea != ' ' && linea != NULL && *linea != '\n' && *linea != '\0')
+        {
+        pedazo[cont] = *linea;
+        linea++;
+        cont++;
+        }
+
+        char* analizar =pedazo;
+        analizar = strtok(analizar, "::");
+        if(strcmp(analizar,"-size")==0)
+        {
+            analizar = strtok(NULL, "::");
+            temp->size= atoi(analizar);
+        }else if(strcmp(analizar,"-path")==0)
+            {
+                analizar = strtok(NULL, "::");
+                strcpy(temp->path ,analizar);
+            }else if(strcmp(analizar,"-unit")==0)
+                {
+                    analizar = strtok(NULL,"::");
+                    strcpy(temp->unit ,analizar);
+                }
+    }
+return temp;
+}
+
+void rmdisk(char archivo[150])
+{
+    int er = 0;
+    FILE *eliminar = fopen(archivo, "r+b");
+    if(eliminar == NULL)
+    {
+        er = 1;
+        printf("El disco que se desea ELIMINAR NO EXISITE\n");
+    }else
+        fclose(eliminar);
+    if(er==0)
+    {
+        remove(archivo);
+        printf("El disco se ELIMINO CON EXITO\n");
+    }
+    er = 0;
+}
+
+
+
+
+

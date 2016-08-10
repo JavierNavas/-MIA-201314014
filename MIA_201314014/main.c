@@ -92,23 +92,21 @@ char nombredisco[256]="/home/milton/Disco3.dsk";
 
 int main()
 {
-    fdisk("fdisk -delete::fast -name::Particion1 -path::/home/Disco1.dsk");
+    /*fdisk("fdisk -delete::fast -name::Particion1 -path::/home/Disco1.dsk");
     tamdisco = 60* KB;
     CrearDisco(nombredisco);
     DiscoDuro *nuevoDisco =parserMkdisk("mkdisk -size::35 -unit::mi -path::hola ");
     printf("unit:%s\n",nuevoDisco->unit);
     printf("path:%s\n",nuevoDisco->path);
     printf("size:%d\n",nuevoDisco->size);
-    rmdisk("/home/milton/Disco2.dsk");
+    rmdisk("/home/milton/Disco2.dsk");*/
     printf("Bienvenido a FILE SYSTEM EXT2/EXT3\n");
     while(estadom!=1){
     printf("Ingrese un comando :\n");
     scanf("%[^\n]", comando);
 
-
     char** tokens;
     tokens =cad_split(comando, ' ');
-
     if (tokens)
     {
         int i;
@@ -119,23 +117,58 @@ int main()
         free(tokens);
     }
     if( strcmp(analizo[0],"exec") == 0 ) {//aqui comparo si ambos comandos son iguales
-        printf("son iguales:%s\n",analizo[1]);
         FILE* script;
-        char linea[80];
+        char linea[180];
+        char lineatras[180];
+        char p[180];
+        char trozoan[10];
         int endoffile=0;
         script=fopen(analizo[1],"r");
         if(script==NULL){
         printf("Ruta erronea, verifique ruta\n");
         }else{
+            printf("El archivo si existe:%s\n",analizo[1]);
             endoffile=fscanf(script," %[^\n]",&linea);
-
-             while(endoffile!=EOF){
-              //Si endofile es EOF entonces estamos en el final del archivo
-            printf("%s\n",linea);
+            strcpy(p,linea);
+            int c=1;
+            int siglinea=0;
+            while(endoffile!=EOF){
+            char *li = linea;
+            if(*li == '#'){
+               printf("Linea No.%d es un Comentario:%s\n",c,linea);
+            }else{
+              if(siglinea==0){
+              for(int i = 0; linea[i]; i++)
+               linea[i] = tolower(linea[i]);
+               char *trozo = NULL;
+               trozo = strtok(linea," ");
+               strcpy(trozoan,trozo);
+               if(strcmp(trozo,"mkdisk") == 0 ){
+                  if ( p[ strlen( p ) - 1 ] == '\\' ){
+                       siglinea=1;
+                       p[strlen(p)-1]=' ';
+                       strcpy(lineatras,p);
+                  }else{
+                  printf("Linea No.%d es el comando mkdisk:%s\n",c,p);
+                  }
+               }
+              }else{
+                printf("entre aqui hahah\n");
+                if(strcmp(trozoan,"mkdisk") == 0 ){
+                  strcat(lineatras,linea);
+                  printf("Linea No.%d es el comando mkdisk:%s\n",c,lineatras);
+                }
+                siglinea=0;
+              }
+            }
+            c++;
             endoffile=fscanf(script," %[^\n]",&linea);
+            strcpy(p,linea);
             }
             fclose(script);
           }
+     }else if(strcmp(analizo[0],"salir") == 0 ){
+         exit(1);
      }else{
         printf("Comando no reconocido\n");
      }

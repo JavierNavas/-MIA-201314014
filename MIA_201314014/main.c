@@ -13,8 +13,8 @@ typedef struct {
 typedef struct DiscoDuro
 {
  int size;
- char path[50];
- char name[50];
+ char path[60];
+ char name[60];
  char unit[50];
 }DiscoDuro;
 
@@ -76,7 +76,6 @@ int existeExtendida(char *ruta);
 int noParticiones(char *ruta);
 MBR* obtenerMBR(char *ruta);
 int encuentroParticion(MBR *mbr, int inicio);
-
 EBR* getEbr(char *ruta);
 
 //VARIABLES LOCALES
@@ -89,6 +88,7 @@ int KB = 1024;
 int estadom=0;
 FILE * midisco;
 char nombredisco[256]="/home/milton/Disco3.dsk";
+int estadomkdisk=0;
 
 int main()
 {
@@ -150,6 +150,7 @@ int main()
                        strcpy(lineatras,p);
                   }else{
                   printf("Linea No.%d es el comando mkdisk:%s\n",c,p);
+                 CrearDisco(p);
                   }
                }
               }else{
@@ -157,6 +158,7 @@ int main()
                 if(strcmp(trozoan,"mkdisk") == 0 ){
                   strcat(lineatras,linea);
                   printf("Linea No.%d es el comando mkdisk:%s\n",c,lineatras);
+                  CrearDisco(lineatras);
                 }
                 siglinea=0;
               }
@@ -181,9 +183,51 @@ int main()
 
 
 void CrearDisco(char direccion[256]) {
+    int errorazo=0;
+    DiscoDuro *nuevoDisco =parserMkdisk(direccion);
+    printf("Datos de comando Ingresado:\n");
+    printf("unit:%s\n",nuevoDisco->unit);
+    printf("size:%d\n",nuevoDisco->size);
+    printf("path:%s\n",nuevoDisco->path);
+    printf("name:%s\n",nuevoDisco->name);
+    if(strcmp(nuevoDisco->unit, "m") == 0)
+    {
+        nuevoDisco->size = nuevoDisco->size * 1024;
+        errorazo = 0;
+    }
+    else
+        if(strcmp(nuevoDisco->unit, "k") == 0)
+            errorazo = 0;
+        else
+        {
+            errorazo = 1;
+            printf("El parametro -UNIT no es correcto,NO SE CREARA ARCHIVO\n");
+        }
+    if(nuevoDisco->size <= 0)
+    {
+        errorazo = 1;
+        printf("El parametro -SIZE no es correcto,NO SE CREARA ARCHIVO\n");
+    }
+    if(errorazo!=1){
+    char directorio[150];
+    char permiso[150];
+    FILE*ar;
+    ar=fopen(nuevoDisco->path,"r");
+        if(ar==NULL){
+        printf("La Ruta No existe,se creara el directorio:%s\n",nuevoDisco->path);
+        sprintf(directorio, "mkdir %s", nuevoDisco->path);
+        system(directorio);
+        sprintf(permiso, "chmod 777  %s", nuevoDisco->path);
+        system(permiso);
+        }else{
+        char direcfinal[200];
+        printf("jajaja");
+        }
 
-
-    midisco = fopen(direccion,"wb");
+    /*midisco = fopen(direccion,"wb");
+    if(midisco==NULL){
+        printf("Ruta erronea, verifique ruta\n");
+    }else{
     fseek(midisco,0,SEEK_SET);
     for(int i = 0; i<tamdisco; i++){
         fwrite("/0",1,1,midisco);
@@ -214,6 +258,8 @@ void CrearDisco(char direccion[256]) {
     printf("tamano(Mbr): %d\n",sizeof(MBR));
     printf("tamano(Particion): %d\n",sizeof(Particion));
     agregarmbr(datosMbr,"hola");
+    }*/
+    }
 }
 
 
@@ -285,12 +331,12 @@ DiscoDuro* parserMkdisk(char datos[150]){
     char*linea = datos;
     while(*linea != '\n' && *linea != '\0' && linea != NULL)
     {
-        while(*linea != '-'){
+        while(*linea != '-' && *linea != '+'){
             linea++;
         }
-        char pedazo[50];
+        char pedazo[60];
         //limpio pedazo a analizar
-        for(int i = 0; i<=50; i++){
+        for(int i = 0; i<=60; i++){
         pedazo[i] = '\0';
         }
         int cont = 0;
@@ -300,9 +346,10 @@ DiscoDuro* parserMkdisk(char datos[150]){
         linea++;
         cont++;
         }
-
         char* analizar =pedazo;
         analizar = strtok(analizar, "::");
+        for(int i = 0; pedazo[i]; i++)
+        pedazo[i] = tolower(pedazo[i]);
         if(strcmp(analizar,"-size")==0)
         {
             analizar = strtok(NULL, "::");
@@ -310,11 +357,49 @@ DiscoDuro* parserMkdisk(char datos[150]){
         }else if(strcmp(analizar,"-path")==0)
             {
                 analizar = strtok(NULL, "::");
-                strcpy(temp->path ,analizar);
-            }else if(strcmp(analizar,"-unit")==0)
+                char pedazo2[60];
+                    strcpy(pedazo2,analizar);
+                    for(int i = 0; pedazo2[i]; i++){
+                     if(pedazo2[i]=='_')
+                      pedazo2[i] = ' ';
+                    }
+                    /*int j = 0;
+                    for (int i = 0; i < 60; i ++) {
+                    if (pedazo2[i] != '"' && pedazo2[i] != '\\') {
+                    pedazo2[j++] = pedazo2[i];
+                    } else if (pedazo2[i+1] == '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '"';
+                    } else if (pedazo2[i+1] != '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '\\';
+                    }
+                    }if(j>0) pedazo2[j]=0;*/
+                    strcpy(temp->path ,pedazo2);
+            }else if(strcmp(analizar,"+unit")==0)
                 {
                     analizar = strtok(NULL,"::");
                     strcpy(temp->unit ,analizar);
+                }else if(strcmp(analizar,"-name")==0)
+                {
+                    analizar = strtok(NULL,"::");
+                    char pedazo2[60];
+                    strcpy(pedazo2,analizar);
+                    for(int i = 0; pedazo2[i]; i++){
+                     if(pedazo2[i]=='_')
+                      pedazo2[i] = ' ';
+                    }
+                    /*int j = 0;
+                    for (int i = 0; i < 60; i ++) {
+                    if (pedazo2[i] != '"' && pedazo2[i] != '\\') {
+                    pedazo2[j++] = pedazo2[i];
+                    } else if (pedazo2[i+1] == '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '"';
+                    } else if (pedazo2[i+1] != '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '\\';
+                    }
+                    }if(j>0) pedazo2[j]=0;*/
+                    strcpy(temp->name ,pedazo2);
+                }else{
+                  printf("ADVERTENCIA: El parametro:%s no es renocido\n",analizar);
                 }
     }
 return temp;
@@ -792,6 +877,3 @@ EBR* getEbr(char *ruta)
     fclose(archivo);
     return ebr;
 }
-
-
-

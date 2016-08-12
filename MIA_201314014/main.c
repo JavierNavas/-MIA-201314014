@@ -14,6 +14,7 @@ typedef struct DiscoDuro
 {
  int size;
  char path[60];
+ char path2[60];
  char name[60];
  char unit[50];
 }DiscoDuro;
@@ -71,16 +72,16 @@ void agregarmbr(MBR* datosMbr,char*ruta);
 DiscoDuro* parserMkdisk(char datos[150]);
 void rmdisk(char archivo[150]);
 administrador* parserfdisk(char datos[100]);
-int fdisk(char datos[100]);
+int fdisk(char datos[200]);
 int existeExtendida(char *ruta);
 int noParticiones(char *ruta);
 MBR* obtenerMBR(char *ruta);
 int encuentroParticion(MBR *mbr, int inicio);
 EBR* getEbr(char *ruta);
+char* parRmdisk(char para[150]);
 
 //VARIABLES LOCALES
 int opcion=0;
-int tamdisco=0;
 char comando[256];
 char analizo[2][256];
 int contador=0;
@@ -92,14 +93,6 @@ int estadomkdisk=0;
 
 int main()
 {
-    /*fdisk("fdisk -delete::fast -name::Particion1 -path::/home/Disco1.dsk");
-    tamdisco = 60* KB;
-    CrearDisco(nombredisco);
-    DiscoDuro *nuevoDisco =parserMkdisk("mkdisk -size::35 -unit::mi -path::hola ");
-    printf("unit:%s\n",nuevoDisco->unit);
-    printf("path:%s\n",nuevoDisco->path);
-    printf("size:%d\n",nuevoDisco->size);
-    rmdisk("/home/milton/Disco2.dsk");*/
     printf("Bienvenido a FILE SYSTEM EXT2/EXT3\n");
     while(estadom!=1){
     printf("Ingrese un comando :\n");
@@ -152,6 +145,24 @@ int main()
                   printf("Linea No.%d es el comando mkdisk:%s\n",c,p);
                  CrearDisco(p);
                   }
+               }else if(strcmp(trozo,"rmdisk") == 0 ){
+                 if ( p[ strlen( p ) - 1 ] == '\\' ){
+                       siglinea=1;
+                       p[strlen(p)-1]=' ';
+                       strcpy(lineatras,p);
+                  }else{
+                  printf("Linea No.%d es el comando rmdisk:%s\n",c,p);
+                  rmdisk(p);
+                  }
+               }else if(strcmp(trozo,"fdisk") == 0 ){
+                 if ( p[ strlen( p ) - 1 ] == '\\' ){
+                       siglinea=1;
+                       p[strlen(p)-1]=' ';
+                       strcpy(lineatras,p);
+                  }else{
+                  printf("Linea No.%d es el comando fdisk:%s\n",c,p);
+                  fdisk(p);
+                  }
                }
               }else{
                 printf("entre aqui hahah\n");
@@ -159,6 +170,14 @@ int main()
                   strcat(lineatras,linea);
                   printf("Linea No.%d es el comando mkdisk:%s\n",c,lineatras);
                   CrearDisco(lineatras);
+                }else if(strcmp(trozoan,"rmdisk") == 0 ){
+                  strcat(lineatras,linea);
+                  printf("Linea No.%d es el comando rmdisk:%s\n",c,lineatras);
+                  rmdisk(lineatras);
+                }else if(strcmp(trozoan,"fdisk") == 0 ){
+                  strcat(lineatras,linea);
+                  printf("Linea No.%d es el comando fdisk:%s\n",c,lineatras);
+                  fdisk(lineatras);
                 }
                 siglinea=0;
               }
@@ -192,13 +211,13 @@ void CrearDisco(char direccion[256]) {
     printf("name:%s\n",nuevoDisco->name);
     if(strcmp(nuevoDisco->unit, "m") == 0)
     {
-        nuevoDisco->size = nuevoDisco->size * 1024;
+        nuevoDisco->size = nuevoDisco->size *1024*1024;
         errorazo = 0;
     }
-    else
-        if(strcmp(nuevoDisco->unit, "k") == 0)
-            errorazo = 0;
-        else
+    else if(strcmp(nuevoDisco->unit, "k") == 0){
+        nuevoDisco->size = nuevoDisco->size *1024;
+        errorazo = 0;
+    }else
         {
             errorazo = 1;
             printf("El parametro -UNIT no es correcto,NO SE CREARA ARCHIVO\n");
@@ -212,28 +231,29 @@ void CrearDisco(char direccion[256]) {
     char directorio[150];
     char permiso[150];
     FILE*ar;
-    ar=fopen(nuevoDisco->path,"r");
+    ar=fopen(nuevoDisco->path,"rb");
         if(ar==NULL){
         printf("La Ruta No existe,se creara el directorio:%s\n",nuevoDisco->path);
         sprintf(directorio, "mkdir %s", nuevoDisco->path);
         system(directorio);
         sprintf(permiso, "chmod 777  %s", nuevoDisco->path);
         system(permiso);
-        }else{
-        char direcfinal[200];
-        printf("jajaja");
         }
+        char direcfinal[200];
+        strcpy(direcfinal,nuevoDisco->path2);
+        strcat(direcfinal,nuevoDisco->name);
+        printf("directorio final:%s\n",direcfinal);
 
-    /*midisco = fopen(direccion,"wb");
+    midisco = fopen(direcfinal,"wb");
     if(midisco==NULL){
-        printf("Ruta erronea, verifique ruta\n");
+        printf("ERROR, verifique ruta\n");
     }else{
     fseek(midisco,0,SEEK_SET);
-    for(int i = 0; i<tamdisco; i++){
+    for(int i = 0; i<nuevoDisco->size; i++){
         fwrite("/0",1,1,midisco);
     }
     fclose(midisco);
-
+    }
 
     MBR* datosMbr = (MBR *) malloc(sizeof(MBR));
     Particion particionTemp;
@@ -251,14 +271,14 @@ void CrearDisco(char direccion[256]) {
     datosMbr->partition_2=particionTemp;
     datosMbr->partition_3=particionTemp;
     datosMbr->partition_4=particionTemp;
-    datosMbr->tamano = tamdisco;
-
+    datosMbr->tamano = nuevoDisco->size;
+    printf("datos de MBR:\n");
     printf("fecha: %s\n",datosMbr->fecha_creacion);
     printf("diskSignatura: %d\n",datosMbr->disk_signature);
     printf("tamano(Mbr): %d\n",sizeof(MBR));
     printf("tamano(Particion): %d\n",sizeof(Particion));
-    agregarmbr(datosMbr,"hola");
-    }*/
+    agregarmbr(datosMbr,direcfinal);
+    printf("El disco creado satisfactoriamente\n");
     }
 }
 
@@ -317,11 +337,10 @@ getchar();
 void agregarmbr(MBR* datosMbr,char*ruta){
 
     FILE *archivo;
-    archivo = fopen("/home/milton/Disco2.dsk", "r+b");
+    archivo = fopen(ruta, "r+b");
     fseek(archivo, 0, SEEK_SET);
     fwrite(datosMbr, sizeof(MBR), 1, archivo);
     fclose(archivo);
-
 }
 
 
@@ -363,7 +382,8 @@ DiscoDuro* parserMkdisk(char datos[150]){
                      if(pedazo2[i]=='_')
                       pedazo2[i] = ' ';
                     }
-                    /*int j = 0;
+                    strcpy(temp->path ,pedazo2);
+                    int j = 0;
                     for (int i = 0; i < 60; i ++) {
                     if (pedazo2[i] != '"' && pedazo2[i] != '\\') {
                     pedazo2[j++] = pedazo2[i];
@@ -372,12 +392,16 @@ DiscoDuro* parserMkdisk(char datos[150]){
                     } else if (pedazo2[i+1] != '"' && pedazo2[i] == '\\') {
                       pedazo2[j++] = '\\';
                     }
-                    }if(j>0) pedazo2[j]=0;*/
-                    strcpy(temp->path ,pedazo2);
+                    }if(j>0) pedazo2[j]=0;
+                    strcpy(temp->path2 ,pedazo2);
             }else if(strcmp(analizar,"+unit")==0)
                 {
                     analizar = strtok(NULL,"::");
-                    strcpy(temp->unit ,analizar);
+                    char pedazo3[6];
+                    strcpy(pedazo3 ,analizar);
+                    for(int i = 0; pedazo3[i]; i++)
+                      pedazo3[i] = tolower(pedazo3[i]);
+                    strcpy(temp->unit ,pedazo3);
                 }else if(strcmp(analizar,"-name")==0)
                 {
                     analizar = strtok(NULL,"::");
@@ -387,7 +411,7 @@ DiscoDuro* parserMkdisk(char datos[150]){
                      if(pedazo2[i]=='_')
                       pedazo2[i] = ' ';
                     }
-                    /*int j = 0;
+                    int j = 0;
                     for (int i = 0; i < 60; i ++) {
                     if (pedazo2[i] != '"' && pedazo2[i] != '\\') {
                     pedazo2[j++] = pedazo2[i];
@@ -396,28 +420,81 @@ DiscoDuro* parserMkdisk(char datos[150]){
                     } else if (pedazo2[i+1] != '"' && pedazo2[i] == '\\') {
                       pedazo2[j++] = '\\';
                     }
-                    }if(j>0) pedazo2[j]=0;*/
+                    }if(j>0) pedazo2[j]=0;
                     strcpy(temp->name ,pedazo2);
                 }else{
-                  printf("ADVERTENCIA: El parametro:%s no es renocido\n",analizar);
+                  printf("ADVERTENCIA en mkdisk: El parametro:%s no es renocido\n",analizar);
                 }
     }
 return temp;
 }
 
+char* parRmdisk(char para[150])
+{
+    printf("hola estoy analizando:%s\n",para);
+    char*lin = para;
+        while(*lin != '-'){
+            lin++;
+        }
+        char pedazo[150];
+        //limpio pedazo a analizar
+        for(int i = 0; i<=150; i++){
+        pedazo[i] = '\0';
+        }
+        int cont = 0;
+        while(*lin != ' ' && lin != NULL && *lin != '\n' && *lin != '\0')
+        {
+        pedazo[cont] = *lin;
+        lin++;
+        cont++;
+        }
+        lin =pedazo;
+        lin= strtok(lin, "::");
+        for(int i = 0; pedazo[i]; i++)
+        pedazo[i] = tolower(pedazo[i]);
+        if(strcmp(lin, "-path") == 0)
+        {
+        lin = strtok(NULL, "::");
+        char pedazo2[150];
+                    strcpy(pedazo2,lin);
+                    for(int i = 0; pedazo2[i]; i++){
+                     if(pedazo2[i]=='_')
+                      pedazo2[i] =' ';
+                    }
+                    int j = 0;
+                    for (int i = 0; i < 60; i ++) {
+                    if (pedazo2[i] != '"' && pedazo2[i] != '\\') {
+                    pedazo2[j++] = pedazo2[i];
+                    } else if (pedazo2[i+1] == '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '"';
+                    } else if (pedazo2[i+1] != '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '\\';
+                    }
+                    }if(j>0) pedazo2[j]=0;
+                     strcpy(lin,pedazo2);
+        }else{
+           printf("ADVERTENCIA en rmdisk: El parametro:%s no es renocido\n",lin);
+        }
+    return lin;
+}
+
+
 void rmdisk(char archivo[150])
 {
+    char coloc[150];
+    strcpy(coloc ,parRmdisk(archivo));
+    printf("se eliminara:%s\n",coloc);
     int er = 0;
-    FILE *eliminar = fopen(archivo, "r+b");
+    FILE *eliminar = fopen(coloc, "r+b");
     if(eliminar == NULL)
     {
         er = 1;
-        printf("El disco que se desea ELIMINAR NO EXISITE\n");
+        printf("El disco que se desea ELIMINAR NO EXISTE\n");
     }else
         fclose(eliminar);
     if(er==0)
     {
-        remove(archivo);
+        remove(parRmdisk(archivo));
         printf("El disco se ELIMINO CON EXITO\n");
     }
     er = 0;
@@ -452,6 +529,8 @@ administrador* parserfdisk(char datos[100])
         }
         char* cadena =pedazo;
         cadena = strtok(cadena, "::");
+        for(int i = 0; pedazo[i]; i++)
+        pedazo[i] = tolower(pedazo[i]);
         if(strcmp(cadena, "-size") == 0)
         {
             cadena = strtok(NULL, "=");
@@ -460,7 +539,23 @@ administrador* parserfdisk(char datos[100])
         else if(strcmp(cadena, "-path") == 0)
             {
                 cadena = strtok(NULL, "::");;
-                strcpy(admi->path,cadena);
+                char pedazo2[60];
+                    strcpy(pedazo2,cadena);
+                    for(int i = 0; pedazo2[i]; i++){
+                     if(pedazo2[i]=='_')
+                      pedazo2[i] = ' ';
+                    }
+                    int j = 0;
+                    for (int i = 0; i < 60; i ++) {
+                    if (pedazo2[i] != '"' && pedazo2[i] != '\\') {
+                    pedazo2[j++] = pedazo2[i];
+                    } else if (pedazo2[i+1] == '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '"';
+                    } else if (pedazo2[i+1] != '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '\\';
+                    }
+                    }if(j>0) pedazo2[j]=0;
+                    strcpy(admi->path,pedazo2);
             }
         else if(strcmp(cadena, "-type") == 0)
             {
@@ -480,7 +575,23 @@ administrador* parserfdisk(char datos[100])
         else if(strcmp(cadena, "-name") == 0)
             {
                 cadena = strtok(NULL, "::");
-                strcpy(admi->nombre,cadena);
+                char pedazo2[60];
+                    strcpy(pedazo2,cadena);
+                    for(int i = 0; pedazo2[i]; i++){
+                     if(pedazo2[i]=='_')
+                      pedazo2[i] = ' ';
+                    }
+                    int j = 0;
+                    for (int i = 0; i < 60; i ++) {
+                    if (pedazo2[i] != '"' && pedazo2[i] != '\\') {
+                    pedazo2[j++] = pedazo2[i];
+                    } else if (pedazo2[i+1] == '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '"';
+                    } else if (pedazo2[i+1] != '"' && pedazo2[i] == '\\') {
+                      pedazo2[j++] = '\\';
+                    }
+                    }if(j>0) pedazo2[j]=0;
+                    strcpy(admi->nombre,pedazo2);
             }
         else if(strcmp(cadena, "-add") == 0)
             {
@@ -496,7 +607,7 @@ administrador* parserfdisk(char datos[100])
     return admi;
 }
 
-int fdisk(char datos[100])
+int fdisk(char datos[200])
 {
     Particion nuevo;
     administrador*formatear= parserfdisk(datos);
